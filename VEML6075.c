@@ -9,170 +9,185 @@
  *
  */
 
-#include "VEML6075.h"
 #include <unistd.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <wiringPi.h>
+#include <wiringPiI2C.h>
+#include "VEML6075.h"
 #include "gps.h"
 #include "misc.h"
 
-VEML6075::VEML6075() {
+uint8_t config;
+uint16_t raw_uva;
+uint16_t raw_uvb;
+uint16_t raw_dark;
+uint16_t raw_vis;
+uint16_t raw_ir;
 
-  // Despite the datasheet saying this isn't the default on startup, it appears
-  // like it is. So tell the thing to actually start gathering data.
-  this->config = 0;
-  this->config |= VEML6075_CONF_SD_OFF;
 
-  // App note only provided math for this one...
-  this->config |= VEML6075_CONF_IT_100MS;
+void VEML6075()
+{
+
+	// Despite the datasheet saying this isn't the default on startup, it appears
+	// like it is. So tell the thing to actually start gathering data.
+	config = 0;
+	config |= VEML6075_CONF_SD_OFF;
+
+	// App note only provided math for this one...
+	config |= VEML6075_CONF_IT_50MS;
 }
 
-bool VEML6075::begin() {
+void begin()
+{
 
-  wiringPiSetup();
-  if (this->getDevID() != VEML6075_DEVID) {
-    return false;
-  }
+	//wiringPiSetup();  
+  
+	// Write config to make sure device is enabled
+	write16(VEML6075_REG_CONF, VEML6075_CONF_IT_50MS);
 
-  // Write config to make sure device is enabled
-  this->write16(VEML6075_REG_CONF, this->config);
-
-  return true;
 }
 
 // Poll sensor for latest values and cache them
-void VEML6075::poll() {
-  this->raw_uva = this->read16(VEML6075_REG_UVA);
-  this->raw_uvb = this->read16(VEML6075_REG_UVB);
-  this->raw_dark = this->read16(VEML6075_REG_DUMMY);
-  this->raw_vis = this->read16(VEML6075_REG_UVCOMP1);
-  this->raw_ir = this->read16(VEML6075_REG_UVCOMP2);
+void poll()
+{
+	raw_uva = read16(VEML6075_REG_UVA);
+	raw_uvb = read16(VEML6075_REG_UVB);
+	raw_dark = read16(VEML6075_REG_DUMMY);
+	raw_vis = read16(VEML6075_REG_UVCOMP1);
+	raw_ir = read16(VEML6075_REG_UVCOMP2);
 }
 
-uint16_t VEML6075::getRawUVA() {
-  return this->raw_uva;
+uint16_t getRawUVA()
+{
+	return raw_uva;
 }
 
-uint16_t VEML6075::getRawUVB() {
-  return this->raw_uvb;
+uint16_t getRawUVB()
+{
+	return raw_uvb;
 }
 
-uint16_t VEML6075::getRawDark() {
-  return this->raw_dark;
+uint16_t getRawDark()
+{
+	return raw_dark;
 }
 
-uint16_t VEML6075::getRawVisComp() {
-  return this->raw_vis;
+uint16_t getRawVisComp()
+{
+	return raw_vis;
 }
 
-uint16_t VEML6075::getRawIRComp() {
-  return this->raw_ir;
+uint16_t getRawIRComp()
+{
+	return raw_ir;
 }
 
 
-uint16_t VEML6075::getDevID() {
-  return this->read16(VEML6075_REG_DEVID);
+uint16_t getDevID()
+{
+	return read16(VEML6075_REG_DEVID);
 }
 
-float VEML6075::getUVA() {
-  float comp_vis = this->raw_vis - this->raw_dark;
-  float comp_ir = this->raw_ir - this->raw_dark;
-  float comp_uva = this->raw_uva - this->raw_dark;
+float getUVA()
+{
+	float comp_vis = raw_vis - raw_dark;
+ 	float comp_ir = raw_ir - raw_dark;
+  	float comp_uva = raw_uva - raw_dark;
 
-  comp_uva -= (VEML6075_UVI_UVA_VIS_COEFF * comp_vis) - (VEML6075_UVI_UVA_IR_COEFF * comp_ir);
+  	comp_uva -= (VEML6075_UVI_UVA_VIS_COEFF * comp_vis) - (VEML6075_UVI_UVA_IR_COEFF * comp_ir);
 
-  return comp_uva;
+  	return comp_uva;
 }
 
-float VEML6075::getUVB() {
-  float comp_vis = this->raw_vis - this->raw_dark;
-  float comp_ir = this->raw_ir - this->raw_dark;
-  float comp_uvb = this->raw_uvb - this->raw_dark;
+float getUVB()
+{
+  	float comp_vis = raw_vis - raw_dark;
+  	float comp_ir = raw_ir - raw_dark;
+  	float comp_uvb = raw_uvb - raw_dark;
 
-  comp_uvb -= (VEML6075_UVI_UVB_VIS_COEFF * comp_vis) - (VEML6075_UVI_UVB_IR_COEFF * comp_ir);
+  	comp_uvb -= (VEML6075_UVI_UVB_VIS_COEFF * comp_vis) - (VEML6075_UVI_UVB_IR_COEFF * comp_ir);
 
-  return comp_uvb;
+  	return comp_uvb;
 }
 
-float VEML6075::getUVIndex() {
-  float uva_weighted = this->getUVA() * VEML6075_UVI_UVA_RESPONSE;
-  float uvb_weighted = this->getUVB() * VEML6075_UVI_UVB_RESPONSE;
-  return (uva_weighted + uvb_weighted) / 2.0;
+float getUVIndex()
+{
+  	float uva_weighted = getUVA() * VEML6075_UVI_UVA_RESPONSE;
+  	float uvb_weighted = getUVB() * VEML6075_UVI_UVB_RESPONSE;
+  	return (uva_weighted + uvb_weighted) / 2.0;
 }
 
-uint16_t VEML6075::read16(uint8_t reg) {
 
-  int fd;
-  fd = wiringPiI2CSetup(VEML6075_ADDR);
-  wiringPiI2CWrite(fd, reg);
+uint16_t read16(uint8_t reg)
+{
 
+  	int fd;
+  	fd = wiringPiI2CSetup(VEML6075_ADDR);
 
-  //Wire.beginTransmission(VEML6075_ADDR);
-  //Wire.write(reg);
-  //Wire.endTransmission(false);
-
-  uint16_t lsb = wiringPiI2CRead(fd);
-  lsb <<= 8;
-  lsb |= wiringPiI2CRead(fd);
-
-  // Wire.requestFrom(VEML6075_ADDR, 2, true);
-  //lsb = Wire.read();
-  //msb = Wire.read();
-
-  return lsb;
-}
-
-void VEML6075::write16(uint8_t reg, uint16_t data) {
-  
-	int fd;
-
-	fd = wiringPiI2CSetup(VEML6075_ADDR);
-	wiringPiI2CWrite(fd, reg);
-	wiringPiI2CWrite(fd, (uint8_t)(0xFF & (data >> 0)));
-	wiringPiI2CWrite(fd, (uint8_t)(0xFF & (data >> 8)));
+  	//uint16_t lsb = wiringPiI2CReadReg16(fd, reg);
+  	//lsb <<= 8;
+  	//lsb |= wiringPiI2CReadReg16(fd, reg);
 	
-  //Wire.beginTransmission(VEML6075_ADDR);
- // Wire.write(reg);
-  //Wire.write((uint8_t)(0xFF & (data >> 0))); // LSB
-  //Wire.write((uint8_t)(0xFF & (data >> 8))); // MSB
-  //Wire.endTransmission();
+
+  	//return lsb;
+	uint16_t lsb = wiringPiI2CReadReg16(fd, reg);
+	return lsb;
 }
 
+void write16(uint8_t reg, uint16_t data)
+{
+  
+  	int fd;
+
+  	fd = wiringPiI2CSetup(VEML6075_ADDR);
+  	//wiringPiI2CWriteReg16(fd, reg, (uint8_t)(0xFF & (data >> 0)));
+
+  	//wiringPiI2CWriteReg16(fd, reg, (uint8_t)(0xFF & (data >> 8)));
+	
+
+	wiringPiI2CWriteReg16(fd,reg,data);
+  	//Wire.beginTransmission(VEML6075_ADDR);
+ 	// Wire.write(reg);
+  	//Wire.write((uint8_t)(0xFF & (data >> 0))); // LSB
+  	//Wire.write((uint8_t)(0xFF & (data >> 8))); // MSB
+  	//Wire.endTransmission();
+}
 
 
 void *VEML6075Loop(void *some_void_ptr)
 {
-	struct TGPS *GPS;
-	uint16_t uva;
-	uint16_t uvb;
-
-	GPS = (struct TGPS *)some_void_ptr;
-
-	VEML6075 my_veml6075 = VEML6075();
-
+  	struct TGPS *GPS;
+  	uint16_t uva;
+  	uint16_t uvb;
+  	GPS = (struct TGPS *)some_void_ptr;
+	sleep(1);
 	wiringPiSetup();
 
-	if (!my_veml6075.begin()) {
-		// Do something intelligent if the sensor isn't found
-		printf("VEML6075 not found")
-	}
+  	//VEML6075();
 
-	while (VEML6075_ADDR)
-	{
-		// Poll sensor
-		my_veml6075.poll();
+  	begin();
 
-		// Get "raw" UVA and UVB counts, with the dark current removed
-		uva = my_veml6075.getUVA();
-		uvb = my_veml6075.getUVB();
+  	
+  	while (1)
+  	{
+  		// Poll sensor
+  		poll();
 
-		GPS->uva = uva;
-		GPS->uvb = uva;
-		printf("UVA Intensity is %f\n", GPS->uva);
-		printf("UVB Intensity is %f\n", GPS->uvb);
-		sleep(10);
-	}
+  		// Get "raw" UVA and UVB counts, with the dark current removed
+  		uva = getUVA();
+  		uvb = getUVB();
+
+		
+    		GPS->uva = uva;
+  		GPS->uvb = uvb;
+  		printf("UVA Intensity is %.f\n", GPS->uva);
+  		printf("UVB Intensity is %.f\n", GPS->uvb);
+		printf("Dev ID %d\n", getDevID());
+  		sleep(5);
+  	}
 	
-	return 0
+  	return 0;
 }
+

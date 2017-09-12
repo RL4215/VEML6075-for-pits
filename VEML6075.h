@@ -8,11 +8,9 @@
  *
  */
 
-#ifndef _VEML6075_H
-#define _VEML6075_H
 
-#include <Arduino.h>
-#include <Wire.h>
+
+
 
 #define VEML6075_ADDR  0x10
 #define VEML6075_DEVID 0x26
@@ -73,42 +71,24 @@ enum veml6075_int_time {
   VEML6075_IT_400MS,
   VEML6075_IT_800MS
 };
+
 typedef enum veml6075_int_time veml6075_int_time_t;
+void VEML6075();
+void begin();
+void poll();
+float getUVA();
+float getUVB();
+float getUVIndex();
+uint16_t getDevID();
+uint16_t getRawUVA();
+uint16_t getRawUVB();
+uint16_t getRawDark();
+uint16_t getRawVisComp();
+uint16_t getRawIRComp();
 
-class VEML6075 {
+void setIntegrationTime(veml6075_int_time_t it);
+uint16_t read16(uint8_t reg);
+void write16(uint8_t reg, uint16_t data);
 
-  public:
+void *VEML6075Loop(void *some_void_ptr);
 
-    VEML6075();
-    bool begin();
-
-    void poll();
-    float getUVA();
-    float getUVB();
-    float getUVIndex();
-    uint16_t getDevID();
-
-    uint16_t getRawUVA();
-    uint16_t getRawUVB();
-    uint16_t getRawDark();
-    uint16_t getRawVisComp();
-    uint16_t getRawIRComp();
-
-    void setIntegrationTime(veml6075_int_time_t it);
-
-  private:
-
-    uint8_t config;
-
-    uint16_t raw_uva;
-    uint16_t raw_uvb;
-    uint16_t raw_dark;
-    uint16_t raw_vis;
-    uint16_t raw_ir;
-
-    uint16_t read16(uint8_t reg);
-    void write16(uint8_t reg, uint16_t data);
-
-};
-
-#endif
