@@ -4,6 +4,8 @@
  * Arduino library for the Vishay VEML6075 UVA/UVB i2c sensor.
  *
  * Author: Sean Caulfield <sean@yak.net>
+ 
+ I transferred it to work on a raspberry Pi with WiringPi module instead of wire on the Arduino
  * 
  * License: GPLv2.0
  *
