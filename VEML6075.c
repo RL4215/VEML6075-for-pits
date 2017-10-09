@@ -3,9 +3,11 @@
  *
  * Arduino library for the Vishay VEML6075 UVA/UVB i2c sensor.
  *
- * Author: Sean Caulfield <sean@yak.net>
+ * Original Author: Sean Caulfield <sean@yak.net>
+ Original structure and code by Sean Caulfield. I transferred it to work on a raspberry Pi
+ with WiringPi module instead of wire module on the Arduino. So essentially I changed the 
+ write16 and read16 functions and added the loop.
  
- I transferred it to work on a raspberry Pi with WiringPi module instead of wire on the Arduino
  * 
  * License: GPLv2.0
  *
@@ -29,23 +31,8 @@ uint16_t raw_vis;
 uint16_t raw_ir;
 
 
-void VEML6075()
-{
-
-	// Despite the datasheet saying this isn't the default on startup, it appears
-	// like it is. So tell the thing to actually start gathering data.
-	config = 0;
-	config |= VEML6075_CONF_SD_OFF;
-
-	// App note only provided math for this one...
-	config |= VEML6075_CONF_IT_50MS;
-}
-
 void begin()
 {
-
-	//wiringPiSetup();  
-  
 	// Write config to make sure device is enabled
 	write16(VEML6075_REG_CONF, VEML6075_CONF_IT_50MS);
 
@@ -124,37 +111,17 @@ float getUVIndex()
 
 uint16_t read16(uint8_t reg)
 {
-
   	int fd;
   	fd = wiringPiI2CSetup(VEML6075_ADDR);
-
-  	//uint16_t lsb = wiringPiI2CReadReg16(fd, reg);
-  	//lsb <<= 8;
-  	//lsb |= wiringPiI2CReadReg16(fd, reg);
-	
-
-  	//return lsb;
 	uint16_t lsb = wiringPiI2CReadReg16(fd, reg);
 	return lsb;
 }
 
 void write16(uint8_t reg, uint16_t data)
 {
-  
   	int fd;
-
   	fd = wiringPiI2CSetup(VEML6075_ADDR);
-  	//wiringPiI2CWriteReg16(fd, reg, (uint8_t)(0xFF & (data >> 0)));
-
-  	//wiringPiI2CWriteReg16(fd, reg, (uint8_t)(0xFF & (data >> 8)));
-	
-
 	wiringPiI2CWriteReg16(fd,reg,data);
-  	//Wire.beginTransmission(VEML6075_ADDR);
- 	// Wire.write(reg);
-  	//Wire.write((uint8_t)(0xFF & (data >> 0))); // LSB
-  	//Wire.write((uint8_t)(0xFF & (data >> 8))); // MSB
-  	//Wire.endTransmission();
 }
 
 
@@ -166,8 +133,6 @@ void *VEML6075Loop(void *some_void_ptr)
   	GPS = (struct TGPS *)some_void_ptr;
 	sleep(1);
 	wiringPiSetup();
-
-  	//VEML6075();
 
   	begin();
 
