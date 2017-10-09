@@ -4,6 +4,7 @@
  * Arduino library for the Vishay VEML6075 UVA/UVB i2c sensor.
  *
  * Author: Sean Caulfield <sean@yak.net>
+    Edited the main .c file to work with raspberry Pi.
  * License: GPLv2.0
  *
  */
@@ -73,7 +74,6 @@ enum veml6075_int_time {
 };
 
 typedef enum veml6075_int_time veml6075_int_time_t;
-void VEML6075();
 void begin();
 void poll();
 float getUVA();
